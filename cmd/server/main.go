@@ -3,13 +3,13 @@ package main
 import (
 	"metrics/internal/database"
 	"metrics/internal/handlers/auth"
-	"metrics/internal/handlers/collect_metric"
+	"metrics/internal/handlers/collector"
 	"net/http"
 )
 
 func main() {
 	db := database.MemStorage{}
-	h := collect_metric.CollectorHandler{DB: &db}
+	h := collector.CollectorHandler{DB: &db}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc(`/`, auth.Handle)

@@ -1,4 +1,4 @@
-package collect_metric
+package collector
 
 import (
 	"metrics/internal/database"

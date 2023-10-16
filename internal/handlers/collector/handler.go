@@ -15,6 +15,10 @@ var (
 	ErrMetricValue  = errors.New("wrong metric value")
 )
 
+var (
+	ErrNotFound = errors.New("value not found")
+)
+
 const (
 	method  = "update"
 	gauge   = "gauge"
@@ -32,18 +36,14 @@ func (h *CollectorHandler) Handle(res http.ResponseWriter, req *http.Request) {
 	}
 
 	p := strings.Split(req.URL.Path, "/")[1:]
-	n := len(p)
-
-	if n < 4 {
-		writeStatus(res, http.StatusBadRequest)
-		return
-	}
-
 	mType, mName, mValue, err := parse(p)
+
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrMetricMethod):
 			http.NotFound(res, req)
+		case errors.Is(err, ErrMetricType):
+			writeStatus(res, http.StatusBadRequest)
 		case errors.Is(err, ErrMetricName):
 			http.NotFound(res, req)
 		case errors.Is(err, ErrMetricValue):
@@ -64,21 +64,27 @@ func (h *CollectorHandler) Handle(res http.ResponseWriter, req *http.Request) {
 }
 
 func parse(path []string) (*string, *string, *string, error) {
-	mMethod, mType, mName, mValue := path[0], path[1], path[2], path[3]
-
-	if mMethod != method {
+	mMethod, err := find(0, path)
+	if err != nil || *mMethod != method {
 		return nil, nil, nil, ErrMetricMethod
 	}
 
-	if mName == "" {
+	mType, err := find(1, path)
+	if err != nil {
+		return nil, nil, nil, ErrMetricType
+	}
+
+	mName, err := find(2, path)
+	if err != nil || *mName == "" {
 		return nil, nil, nil, ErrMetricName
 	}
 
-	if mValue == "" {
-		return nil, nil, nil, ErrMetricValue
+	mValue, err := find(3, path)
+	if err != nil || *mValue == "" {
+		return nil, nil, nil, ErrMetricName
 	}
 
-	return &mType, &mName, &mValue, nil
+	return mType, mName, mValue, nil
 }
 
 func handleGauge(res http.ResponseWriter, name, value string) {
@@ -106,4 +112,14 @@ func handleCounter(res http.ResponseWriter, name, value string) {
 func writeStatus(res http.ResponseWriter, status int) {
 	res.WriteHeader(status)
 	res.Write([]byte(http.StatusText(status)))
+}
+
+func find(index int, path []string) (*string, error) {
+	for i, v := range path {
+		if i == index {
+			return &v, nil
+		}
+	}
+
+	return nil, ErrNotFound
 }

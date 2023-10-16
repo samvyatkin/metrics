@@ -5,6 +5,5 @@ import (
 )
 
 func Handle(res http.ResponseWriter, req *http.Request) {
-	res.WriteHeader(http.StatusUnauthorized)
-	res.Write([]byte("Куда лезешь, собака сутулая?"))
+	http.NotFound(res, req)
 }
